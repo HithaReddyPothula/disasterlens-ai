@@ -1,6 +1,6 @@
 "use client";
 
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -158,6 +158,34 @@ export function checkVerification(
   return { verified, reportCount };
 }
 
+// Checks if a blocked road hazard lies near the straight line between two points
+export function checkRouteForBlockedRoads(
+  startLat: number,
+  startLng: number,
+  endLat: number,
+  endLng: number,
+  hazards: Hazard[]
+) {
+  const BUFFER_MILES = 1; // how close a hazard needs to be to the route to count as "on the way"
+
+  const blockedRoadHazards = hazards.filter((h) => h.type === "blocked_road");
+
+  const nearbyBlockages = blockedRoadHazards.filter((h) => {
+    // Check distance from hazard to both the start and end point as a simple approximation
+    const distFromStart = getDistance(startLat, startLng, h.lat, h.lng);
+    const distFromEnd = getDistance(endLat, endLng, h.lat, h.lng);
+    const totalRouteDist = getDistance(startLat, startLng, endLat, endLng);
+
+    // If hazard is roughly "between" start and end (not way off to the side), flag it
+    return distFromStart + distFromEnd <= totalRouteDist + BUFFER_MILES;
+  });
+
+  return {
+    hasBlockages: nearbyBlockages.length > 0,
+    blockages: nearbyBlockages,
+  };
+}
+
 // Colors for each hazard type
 function getColorIcon(type: string) {
   const colors: Record<string, string> = {
@@ -182,9 +210,11 @@ function getColorIcon(type: string) {
 export default function DisasterMap({
   hazards,
   volunteers = [],
+  route = null,
 }: {
   hazards: Hazard[];
   volunteers?: Volunteer[];
+  route?: { start: [number, number]; end: [number, number]; blocked: boolean } | null;
 }) {
   const center: [number, number] = [27.9506, -82.4572];
 
@@ -265,6 +295,18 @@ export default function DisasterMap({
           </Popup>
         </Marker>
       ))}
+
+      {/* Route line */}
+      {route && (
+        <Polyline
+          positions={[route.start, route.end]}
+          pathOptions={{
+            color: route.blocked ? "red" : "lime",
+            weight: 4,
+            dashArray: route.blocked ? "10, 10" : undefined,
+          }}
+        />
+      )}
 
       {/* Volunteer pins */}
       {volunteers.map((volunteer) => (

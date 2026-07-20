@@ -7,7 +7,9 @@ import {
   findNearestShelter,
   findMatchingVolunteers,
   checkVerification,
+  checkRouteForBlockedRoads,
   TAMPA_NEIGHBORHOODS,
+  SHELTERS,
 } from "./DisasterMap";
 
 // Load the map only in the browser (not on the server)
@@ -29,6 +31,13 @@ const SKILL_OPTIONS = [
 
 const NEIGHBORHOOD_OPTIONS = Object.keys(TAMPA_NEIGHBORHOODS);
 
+type RouteResult = {
+  start: [number, number];
+  end: [number, number];
+  blocked: boolean;
+  blockageCount: number;
+};
+
 export default function Home() {
   const [image, setImage] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string>("");
@@ -36,12 +45,18 @@ export default function Home() {
   const [result, setResult] = useState<string | null>(null);
   const [hazards, setHazards] = useState<Hazard[]>([]);
   const [nearestShelterInfo, setNearestShelterInfo] = useState<string | null>(null);
+  const [estimatedCost, setEstimatedCost] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [showIntro, setShowIntro] = useState(true);
   const [verificationInfo, setVerificationInfo] = useState<{
     verified: boolean;
     reportCount: number;
   } | null>(null);
+
+  // Directions state
+  const [myLocation, setMyLocation] = useState(NEIGHBORHOOD_OPTIONS[0]);
+  const [destinationShelterId, setDestinationShelterId] = useState(SHELTERS[0].id);
+  const [route, setRoute] = useState<RouteResult | null>(null);
 
   // Volunteer state
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
@@ -52,6 +67,27 @@ export default function Home() {
     NEIGHBORHOOD_OPTIONS[0]
   );
   const [matchedVolunteers, setMatchedVolunteers] = useState<Volunteer[]>([]);
+
+  function handleGetDirections() {
+    const start = TAMPA_NEIGHBORHOODS[myLocation];
+    const destination = SHELTERS.find((s) => s.id === destinationShelterId);
+    if (!start || !destination) return;
+
+    const { hasBlockages, blockages } = checkRouteForBlockedRoads(
+      start.lat,
+      start.lng,
+      destination.lat,
+      destination.lng,
+      hazards
+    );
+
+    setRoute({
+      start: [start.lat, start.lng],
+      end: [destination.lat, destination.lng],
+      blocked: hasBlockages,
+      blockageCount: blockages.length,
+    });
+  }
 
   function handleVolunteerSignup() {
     if (!volunteerName.trim() || !volunteerContact.trim()) return;
@@ -92,11 +128,13 @@ export default function Home() {
     const typeMatch = text.match(/hazard_type:\s*([a-z_]+)/i);
     const severityMatch = text.match(/severity:\s*([a-z]+)/i);
     const descMatch = text.match(/description:\s*(.+)/i);
+    const costMatch = text.match(/estimated_cost:\s*(.+)/i);
 
     return {
       type: typeMatch ? typeMatch[1].toLowerCase() : "none",
       severity: severityMatch ? severityMatch[1].toLowerCase() : "unknown",
       description: descMatch ? descMatch[1].trim() : "No description available.",
+      estimatedCost: costMatch ? costMatch[1].trim() : "Unable to estimate",
     };
   }
 
@@ -106,6 +144,7 @@ export default function Home() {
     setResult(null);
     setMatchedVolunteers([]);
     setVerificationInfo(null);
+    setEstimatedCost(null);
 
     const response = await fetch("/api/analyze", {
       method: "POST",
@@ -118,6 +157,7 @@ export default function Home() {
     setResult(text);
 
     const parsed = parseHazard(text);
+    setEstimatedCost(parsed.estimatedCost);
 
     // Random nearby location around Tampa, for demo purposes
     const newLat = 27.9506 + (Math.random() - 0.5) * 0.08;
@@ -200,7 +240,7 @@ export default function Home() {
       </p>
 
       <div className="flex flex-col lg:flex-row gap-8 max-w-6xl mx-auto">
-        {/* Left column: Upload panel + Volunteer signup */}
+        {/* Left column: Upload panel + Directions + Volunteer signup */}
         <div className="w-full lg:w-1/3 flex flex-col gap-6">
           {/* Upload panel */}
           <div className="border-2 border-dashed border-slate-500 rounded-xl p-10 text-center">
@@ -274,6 +314,18 @@ export default function Home() {
               </div>
             )}
 
+            {estimatedCost && (
+              <div className="mt-4 text-left text-sm bg-slate-800 border border-slate-500 p-4 rounded-lg">
+                <p className="text-orange-300 font-semibold mb-1">
+                  💰 Estimated Damage Cost:
+                </p>
+                <p className="text-slate-300">{estimatedCost}</p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Rough AI visual estimate — not a professional appraisal
+                </p>
+              </div>
+            )}
+
             {matchedVolunteers.length > 0 && (
               <div className="mt-4 text-left text-sm bg-slate-800 border border-slate-500 p-4 rounded-lg">
                 <p className="font-semibold text-orange-300 mb-2">
@@ -294,6 +346,66 @@ export default function Home() {
             {result && matchedVolunteers.length === 0 && (
               <div className="mt-4 text-left text-sm bg-slate-800 border border-slate-600 p-4 rounded-lg text-slate-400">
                 🤝 No matching volunteers signed up yet for this hazard type.
+              </div>
+            )}
+          </div>
+
+          {/* Get Directions panel */}
+          <div className="bg-slate-800 rounded-xl p-6">
+            <p className="font-semibold text-orange-300 mb-3">
+              🧭 Get Directions to a Shelter
+            </p>
+
+            <label className="text-xs text-slate-400 mb-1 block">
+              Your location
+            </label>
+            <select
+              value={myLocation}
+              onChange={(e) => setMyLocation(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm text-white mb-3"
+            >
+              {NEIGHBORHOOD_OPTIONS.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+
+            <label className="text-xs text-slate-400 mb-1 block">
+              Destination shelter
+            </label>
+            <select
+              value={destinationShelterId}
+              onChange={(e) => setDestinationShelterId(Number(e.target.value))}
+              className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm text-white mb-3"
+            >
+              {SHELTERS.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+
+            <button
+              onClick={handleGetDirections}
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium px-4 py-2 rounded-lg transition"
+            >
+              Get Directions
+            </button>
+
+            {route && (
+              <div
+                className={`mt-4 text-sm p-3 rounded-lg border ${
+                  route.blocked
+                    ? "bg-red-900/40 border-red-500"
+                    : "bg-green-900/40 border-green-500"
+                }`}
+              >
+                {route.blocked
+                  ? `⚠️ Warning: ${route.blockageCount} blocked road${
+                      route.blockageCount > 1 ? "s" : ""
+                    } reported near this route. Consider an alternative shelter.`
+                  : "✅ Route looks clear — no reported blockages nearby."}
               </div>
             )}
           </div>
@@ -361,7 +473,7 @@ export default function Home() {
 
         {/* Map panel */}
         <div className="w-full lg:w-2/3">
-          <DisasterMap hazards={hazards} volunteers={volunteers} />
+          <DisasterMap hazards={hazards} volunteers={volunteers} route={route} />
 
           {/* Legend */}
           <div className="mt-4 flex flex-wrap gap-4 text-sm bg-slate-800 p-4 rounded-lg">

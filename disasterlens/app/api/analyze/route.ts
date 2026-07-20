@@ -15,13 +15,13 @@ export async function POST(req: NextRequest) {
         {
           role: "user",
           content: [
-
             {
               type: "text",
               text: `You are a disaster response AI. Look at this photo and the reporter's notes below, then respond ONLY in this exact format, nothing else:
 hazard_type: [flood/fire/downed_tree/damaged_building/blocked_road/none]
 severity: [low/medium/high]
 description: [one short sentence, combining what you see AND what the reporter said]
+estimated_cost: [a rough repair cost RANGE in USD, like "$5,000 - $15,000". This is a rough visual estimate only, not a professional appraisal]
 
 Reporter's notes: "${notes || "No additional notes provided."}"`,
             },
