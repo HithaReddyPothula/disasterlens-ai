@@ -16,6 +16,7 @@ export default function Home() {
   const [hazards, setHazards] = useState<Hazard[]>([]);
   const [nearestShelterInfo, setNearestShelterInfo] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const [showIntro, setShowIntro] = useState(true);
 
   function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -72,6 +73,7 @@ export default function Home() {
     };
 
     setHazards((prev) => [...prev, newHazard]);
+
     // Find nearest shelter to this new hazard
     const { shelter, distance } = findNearestShelter(newHazard.lat, newHazard.lng);
     setNearestShelterInfo(
@@ -79,7 +81,37 @@ export default function Home() {
         1
       )} miles away) — ${shelter.currentOccupancy}/${shelter.capacity} occupied`
     );
+
     setLoading(false);
+  }
+
+  if (showIntro) {
+    return (
+      <main className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-8 text-center">
+        <h1 className="text-5xl font-bold text-orange-400 mb-4">
+          DisasterLens AI
+        </h1>
+        <p className="text-slate-300 max-w-xl mb-2 text-lg">
+          When disaster strikes, every second matters.
+        </p>
+        <p className="text-slate-400 max-w-xl mb-10">
+          DisasterLens turns community-submitted photos into real-time
+          emergency intelligence — helping first responders identify hazards,
+          locate shelters, and save lives faster.
+        </p>
+
+        <button
+          onClick={() => setShowIntro(false)}
+          className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-8 py-3 rounded-lg text-lg transition"
+        >
+          Get Started →
+        </button>
+
+        <p className="mt-10 text-xs text-slate-500 max-w-md">
+          "Building with AI: Empowering Communities, Transforming Futures"
+        </p>
+      </main>
+    );
   }
 
   return (
@@ -144,6 +176,7 @@ export default function Home() {
               {result}
             </pre>
           )}
+
           {nearestShelterInfo && (
             <div className="mt-4 text-left text-sm bg-purple-900/40 border border-purple-500 p-4 rounded-lg">
               🏠 {nearestShelterInfo}
@@ -154,8 +187,30 @@ export default function Home() {
         {/* Map panel */}
         <div className="w-full lg:w-2/3">
           <DisasterMap hazards={hazards} />
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap gap-4 text-sm bg-slate-800 p-4 rounded-lg">
+            <LegendItem color="#3388ff" label="Flood" />
+            <LegendItem color="#ff3333" label="Fire" />
+            <LegendItem color="#33cc33" label="Downed Tree" />
+            <LegendItem color="#ff9900" label="Damaged Building" />
+            <LegendItem color="#ffcc00" label="Blocked Road" />
+            <LegendItem color="#9b59b6" label="Shelter" />
+          </div>
         </div>
       </div>
     </main>
+  );
+}
+
+function LegendItem({ color, label }: { color: string; label: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span
+        className="w-3 h-3 rounded-full inline-block"
+        style={{ backgroundColor: color }}
+      ></span>
+      <span className="text-slate-300">{label}</span>
+    </div>
   );
 }
