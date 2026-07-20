@@ -35,6 +35,28 @@ export type Shelter = {
   petFriendly: boolean;
 };
 
+export type Volunteer = {
+  id: number;
+  name: string;
+  skill: string;
+  contact: string;
+  neighborhood: string;
+  lat: number;
+  lng: number;
+};
+
+// Approximate coordinates for real Tampa-area neighborhoods
+export const TAMPA_NEIGHBORHOODS: Record<string, { lat: number; lng: number }> = {
+  "Downtown Tampa": { lat: 27.9478, lng: -82.4584 },
+  "Ybor City": { lat: 27.9581, lng: -82.4359 },
+  "West Tampa": { lat: 27.9506, lng: -82.485 },
+  "Tampa Heights": { lat: 27.9648, lng: -82.458 },
+  "Seminole Heights": { lat: 27.9825, lng: -82.4573 },
+  "South Tampa": { lat: 27.9086, lng: -82.4859 },
+  "Brandon": { lat: 27.9378, lng: -82.2859 },
+  "Carrollwood": { lat: 28.0648, lng: -82.4907 },
+};
+
 export const SHELTERS: Shelter[] = [
   {
     id: 1,
@@ -70,6 +92,20 @@ export const SHELTERS: Shelter[] = [
     petFriendly: true,
   },
 ];
+
+// Which volunteer skills are useful for each hazard type
+const SKILL_MATCH: Record<string, string[]> = {
+  flood: ["boat_rescue", "medical", "supplies"],
+  fire: ["firefighting", "medical", "evacuation_support"],
+  downed_tree: ["chainsaw", "electrician"],
+  damaged_building: ["construction", "medical", "search_and_rescue"],
+  blocked_road: ["heavy_equipment", "traffic_support"],
+};
+
+export function findMatchingVolunteers(hazardType: string, volunteers: Volunteer[]) {
+  const neededSkills = SKILL_MATCH[hazardType] || [];
+  return volunteers.filter((v) => neededSkills.includes(v.skill));
+}
 
 // Calculates straight-line distance between two points (in miles)
 export function getDistance(lat1: number, lng1: number, lat2: number, lng2: number) {
@@ -121,12 +157,27 @@ function getColorIcon(type: string) {
   });
 }
 
-export default function DisasterMap({ hazards }: { hazards: Hazard[] }) {
+export default function DisasterMap({
+  hazards,
+  volunteers = [],
+}: {
+  hazards: Hazard[];
+  volunteers?: Volunteer[];
+}) {
   const center: [number, number] = [27.9506, -82.4572];
 
   const shelterIcon = new L.Icon({
     iconUrl:
       "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-violet.png",
+    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+  });
+
+  const volunteerIcon = new L.Icon({
+    iconUrl:
+      "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-black.png",
     shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
     iconSize: [25, 41],
     iconAnchor: [12, 41],
@@ -178,6 +229,25 @@ export default function DisasterMap({ hazards }: { hazards: Hazard[] }) {
             {shelter.hasMedical ? "✅ Medical staff" : "❌ No medical staff"}
             <br />
             {shelter.petFriendly ? "✅ Pet-friendly" : "❌ Not pet-friendly"}
+          </Popup>
+        </Marker>
+      ))}
+
+      {/* Volunteer pins */}
+      {volunteers.map((volunteer) => (
+        <Marker
+          key={`volunteer-${volunteer.id}`}
+          position={[volunteer.lat, volunteer.lng]}
+          icon={volunteerIcon}
+        >
+          <Popup>
+            <strong>{volunteer.name}</strong>
+            <br />
+            Skill: {volunteer.skill.replace("_", " ")}
+            <br />
+            Neighborhood: {volunteer.neighborhood}
+            <br />
+            Contact: {volunteer.contact}
           </Popup>
         </Marker>
       ))}

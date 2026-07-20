@@ -2,11 +2,31 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import type { Hazard } from "./DisasterMap";
-import { findNearestShelter } from "./DisasterMap";
+import type { Hazard, Volunteer } from "./DisasterMap";
+import {
+  findNearestShelter,
+  findMatchingVolunteers,
+  TAMPA_NEIGHBORHOODS,
+} from "./DisasterMap";
 
 // Load the map only in the browser (not on the server)
 const DisasterMap = dynamic(() => import("./DisasterMap"), { ssr: false });
+
+const SKILL_OPTIONS = [
+  { value: "medical", label: "Medical" },
+  { value: "boat_rescue", label: "Boat Rescue" },
+  { value: "firefighting", label: "Firefighting" },
+  { value: "chainsaw", label: "Chainsaw / Debris Removal" },
+  { value: "electrician", label: "Electrician" },
+  { value: "construction", label: "Construction" },
+  { value: "search_and_rescue", label: "Search & Rescue" },
+  { value: "heavy_equipment", label: "Heavy Equipment Operator" },
+  { value: "traffic_support", label: "Traffic Support" },
+  { value: "supplies", label: "Supply Delivery" },
+  { value: "evacuation_support", label: "Evacuation Support" },
+];
+
+const NEIGHBORHOOD_OPTIONS = Object.keys(TAMPA_NEIGHBORHOODS);
 
 export default function Home() {
   const [image, setImage] = useState<string | null>(null);
@@ -17,6 +37,36 @@ export default function Home() {
   const [nearestShelterInfo, setNearestShelterInfo] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [showIntro, setShowIntro] = useState(true);
+
+  // Volunteer state
+  const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
+  const [volunteerName, setVolunteerName] = useState("");
+  const [volunteerSkill, setVolunteerSkill] = useState("medical");
+  const [volunteerContact, setVolunteerContact] = useState("");
+  const [volunteerNeighborhood, setVolunteerNeighborhood] = useState(
+    NEIGHBORHOOD_OPTIONS[0]
+  );
+  const [matchedVolunteers, setMatchedVolunteers] = useState<Volunteer[]>([]);
+
+  function handleVolunteerSignup() {
+    if (!volunteerName.trim() || !volunteerContact.trim()) return;
+
+    const coords = TAMPA_NEIGHBORHOODS[volunteerNeighborhood];
+
+    const newVolunteer: Volunteer = {
+      id: Date.now(),
+      name: volunteerName,
+      skill: volunteerSkill,
+      contact: volunteerContact,
+      neighborhood: volunteerNeighborhood,
+      lat: coords.lat,
+      lng: coords.lng,
+    };
+
+    setVolunteers((prev) => [...prev, newVolunteer]);
+    setVolunteerName("");
+    setVolunteerContact("");
+  }
 
   function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -49,6 +99,7 @@ export default function Home() {
     if (!image) return;
     setLoading(true);
     setResult(null);
+    setMatchedVolunteers([]);
 
     const response = await fetch("/api/analyze", {
       method: "POST",
@@ -81,6 +132,10 @@ export default function Home() {
         1
       )} miles away) — ${shelter.currentOccupancy}/${shelter.capacity} occupied`
     );
+
+    // Find matching volunteers for this hazard type
+    const matches = findMatchingVolunteers(parsed.type, volunteers);
+    setMatchedVolunteers(matches);
 
     setLoading(false);
   }
@@ -125,68 +180,154 @@ export default function Home() {
       </p>
 
       <div className="flex flex-col lg:flex-row gap-8 max-w-6xl mx-auto">
-        {/* Upload panel */}
-        <div className="border-2 border-dashed border-slate-500 rounded-xl p-10 text-center w-full lg:w-1/3">
-          <p className="text-slate-400 mb-4">Choose a photo to analyze</p>
+        {/* Left column: Upload panel + Volunteer signup */}
+        <div className="w-full lg:w-1/3 flex flex-col gap-6">
+          {/* Upload panel */}
+          <div className="border-2 border-dashed border-slate-500 rounded-xl p-10 text-center">
+            <p className="text-slate-400 mb-4">Choose a photo to analyze</p>
 
-          <label className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-medium px-5 py-2 rounded-lg cursor-pointer transition">
-            Choose File
+            <label className="inline-block bg-orange-500 hover:bg-orange-600 text-white font-medium px-5 py-2 rounded-lg cursor-pointer transition">
+              Choose File
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+            </label>
+
+            <p className="mt-3 text-sm text-slate-400">
+              {fileName ? fileName : "No file chosen"}
+            </p>
+
+            {image && (
+              <img
+                src={image}
+                alt="Uploaded preview"
+                className="mt-6 rounded-lg max-h-64 mx-auto"
+              />
+            )}
+
+            {image && (
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Add details: exact location, what's happening, who needs help..."
+                className="mt-4 w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-sm text-white placeholder-slate-500 resize-none"
+                rows={3}
+              />
+            )}
+
+            {image && (
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="mt-6 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white font-medium px-6 py-2 rounded-lg transition"
+              >
+                {loading ? "Analyzing..." : "Submit for Analysis"}
+              </button>
+            )}
+
+            {result && (
+              <pre className="mt-6 text-left text-sm bg-slate-800 p-4 rounded-lg whitespace-pre-wrap">
+                {result}
+              </pre>
+            )}
+
+            {nearestShelterInfo && (
+              <div className="mt-4 text-left text-sm bg-purple-900/40 border border-purple-500 p-4 rounded-lg">
+                🏠 {nearestShelterInfo}
+              </div>
+            )}
+
+            {matchedVolunteers.length > 0 && (
+              <div className="mt-4 text-left text-sm bg-slate-800 border border-slate-500 p-4 rounded-lg">
+                <p className="font-semibold text-orange-300 mb-2">
+                  🤝 Matched Volunteers:
+                </p>
+                {matchedVolunteers.map((v) => (
+                  <div key={v.id} className="text-slate-300 mb-2">
+                    <p className="font-medium text-white">{v.name}</p>
+                    <p className="text-xs text-slate-400">
+                      {v.skill.replace("_", " ")} · {v.neighborhood}
+                    </p>
+                    <p className="text-xs text-green-400">📞 {v.contact}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {result && matchedVolunteers.length === 0 && (
+              <div className="mt-4 text-left text-sm bg-slate-800 border border-slate-600 p-4 rounded-lg text-slate-400">
+                🤝 No matching volunteers signed up yet for this hazard type.
+              </div>
+            )}
+          </div>
+
+          {/* Volunteer sign-up panel */}
+          <div className="bg-slate-800 rounded-xl p-6">
+            <p className="font-semibold text-orange-300 mb-3">
+              Want to help? Sign up as a volunteer:
+            </p>
+
             <input
-              type="file"
-              accept="image/*"
-              onChange={handleFileSelect}
-              className="hidden"
+              type="text"
+              value={volunteerName}
+              onChange={(e) => setVolunteerName(e.target.value)}
+              placeholder="Your name"
+              className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm text-white placeholder-slate-500 mb-3"
             />
-          </label>
 
-          <p className="mt-3 text-sm text-slate-400">
-            {fileName ? fileName : "No file chosen"}
-          </p>
-
-          {image && (
-            <img
-              src={image}
-              alt="Uploaded preview"
-              className="mt-6 rounded-lg max-h-64 mx-auto"
+            <input
+              type="text"
+              value={volunteerContact}
+              onChange={(e) => setVolunteerContact(e.target.value)}
+              placeholder="Phone or email"
+              className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm text-white placeholder-slate-500 mb-3"
             />
-          )}
 
-          {image && (
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add details: exact location, what's happening, who needs help..."
-              className="mt-4 w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-sm text-white placeholder-slate-500 resize-none"
-              rows={3}
-            />
-          )}
-
-          {image && (
-            <button
-              onClick={handleSubmit}
-              disabled={loading}
-              className="mt-6 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white font-medium px-6 py-2 rounded-lg transition"
+            <select
+              value={volunteerNeighborhood}
+              onChange={(e) => setVolunteerNeighborhood(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm text-white mb-3"
             >
-              {loading ? "Analyzing..." : "Submit for Analysis"}
+              {NEIGHBORHOOD_OPTIONS.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={volunteerSkill}
+              onChange={(e) => setVolunteerSkill(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm text-white mb-3"
+            >
+              {SKILL_OPTIONS.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+
+            <button
+              onClick={handleVolunteerSignup}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition"
+            >
+              Sign Up
             </button>
-          )}
 
-          {result && (
-            <pre className="mt-6 text-left text-sm bg-slate-800 p-4 rounded-lg whitespace-pre-wrap">
-              {result}
-            </pre>
-          )}
-
-          {nearestShelterInfo && (
-            <div className="mt-4 text-left text-sm bg-purple-900/40 border border-purple-500 p-4 rounded-lg">
-              🏠 {nearestShelterInfo}
-            </div>
-          )}
+            {volunteers.length > 0 && (
+              <p className="mt-3 text-xs text-slate-400">
+                {volunteers.length} volunteer{volunteers.length > 1 ? "s" : ""} registered
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Map panel */}
         <div className="w-full lg:w-2/3">
-          <DisasterMap hazards={hazards} />
+          <DisasterMap hazards={hazards} volunteers={volunteers} />
 
           {/* Legend */}
           <div className="mt-4 flex flex-wrap gap-4 text-sm bg-slate-800 p-4 rounded-lg">
@@ -196,6 +337,7 @@ export default function Home() {
             <LegendItem color="#ff9900" label="Damaged Building" />
             <LegendItem color="#ffcc00" label="Blocked Road" />
             <LegendItem color="#9b59b6" label="Shelter" />
+            <LegendItem color="#333333" label="Volunteer" />
           </div>
         </div>
       </div>
