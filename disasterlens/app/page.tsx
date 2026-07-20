@@ -53,6 +53,12 @@ export default function Home() {
     reportCount: number;
   } | null>(null);
 
+  // Voice recording state
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+
   // Directions state
   const [myLocation, setMyLocation] = useState(NEIGHBORHOOD_OPTIONS[0]);
   const [destinationShelterId, setDestinationShelterId] = useState(SHELTERS[0].id);
@@ -67,6 +73,45 @@ export default function Home() {
     NEIGHBORHOOD_OPTIONS[0]
   );
   const [matchedVolunteers, setMatchedVolunteers] = useState<Volunteer[]>([]);
+
+  async function startRecording() {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const recorder = new MediaRecorder(stream);
+    const chunks: BlobPart[] = [];
+
+    recorder.ondataavailable = (e) => chunks.push(e.data);
+    recorder.onstop = async () => {
+      const blob = new Blob(chunks, { type: "audio/webm" });
+      setAudioBlob(blob);
+      await transcribeAudio(blob);
+    };
+
+    recorder.start();
+    setMediaRecorder(recorder);
+    setIsRecording(true);
+  }
+
+  function stopRecording() {
+    mediaRecorder?.stop();
+    setIsRecording(false);
+  }
+
+  async function transcribeAudio(blob: Blob) {
+    setTranscribing(true);
+    const formData = new FormData();
+    formData.append("audio", blob, "recording.webm");
+
+    const response = await fetch("/api/transcribe", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (data.text) {
+      setNotes((prev) => (prev ? prev + " " + data.text : data.text));
+    }
+    setTranscribing(false);
+  }
 
   function handleGetDirections() {
     const start = TAMPA_NEIGHBORHOODS[myLocation];
@@ -269,13 +314,31 @@ export default function Home() {
             )}
 
             {image && (
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder="Add details: exact location, what's happening, who needs help..."
-                className="mt-4 w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-sm text-white placeholder-slate-500 resize-none"
-                rows={3}
-              />
+              <>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Add details: exact location, what's happening, who needs help..."
+                  className="mt-4 w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-sm text-white placeholder-slate-500 resize-none"
+                  rows={3}
+                />
+
+                <button
+                  onClick={isRecording ? stopRecording : startRecording}
+                  disabled={transcribing}
+                  className={`mt-2 w-full px-4 py-2 rounded-lg text-sm font-medium transition ${
+                    isRecording
+                      ? "bg-red-600 hover:bg-red-700 animate-pulse"
+                      : "bg-slate-700 hover:bg-slate-600"
+                  }`}
+                >
+                  {transcribing
+                    ? "Transcribing..."
+                    : isRecording
+                    ? "⏹ Stop Recording"
+                    : "🎤 Record Voice Note"}
+                </button>
+              </>
             )}
 
             {image && (
