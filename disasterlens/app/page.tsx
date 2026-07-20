@@ -3,6 +3,7 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 import type { Hazard } from "./DisasterMap";
+import { findNearestShelter } from "./DisasterMap";
 
 // Load the map only in the browser (not on the server)
 const DisasterMap = dynamic(() => import("./DisasterMap"), { ssr: false });
@@ -13,6 +14,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [hazards, setHazards] = useState<Hazard[]>([]);
+  const [nearestShelterInfo, setNearestShelterInfo] = useState<string | null>(null);
 
   function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -69,6 +71,13 @@ export default function Home() {
     };
 
     setHazards((prev) => [...prev, newHazard]);
+    // Find nearest shelter to this new hazard
+    const { shelter, distance } = findNearestShelter(newHazard.lat, newHazard.lng);
+    setNearestShelterInfo(
+      `Nearest shelter: ${shelter.name} (${distance.toFixed(
+        1
+      )} miles away) — ${shelter.currentOccupancy}/${shelter.capacity} occupied`
+    );
     setLoading(false);
   }
 
@@ -123,6 +132,11 @@ export default function Home() {
             <pre className="mt-6 text-left text-sm bg-slate-800 p-4 rounded-lg whitespace-pre-wrap">
               {result}
             </pre>
+          )}
+          {nearestShelterInfo && (
+            <div className="mt-4 text-left text-sm bg-purple-900/40 border border-purple-500 p-4 rounded-lg">
+              🏠 {nearestShelterInfo}
+            </div>
           )}
         </div>
 
