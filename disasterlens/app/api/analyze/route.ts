@@ -7,7 +7,7 @@ const openai = new OpenAI({
 
 export async function POST(req: NextRequest) {
   try {
-    const { imageBase64 } = await req.json();
+    const { imageBase64, notes } = await req.json();
 
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -15,12 +15,15 @@ export async function POST(req: NextRequest) {
         {
           role: "user",
           content: [
+
             {
               type: "text",
-              text: `You are a disaster response AI. Look at this photo and respond ONLY in this exact format, nothing else:
+              text: `You are a disaster response AI. Look at this photo and the reporter's notes below, then respond ONLY in this exact format, nothing else:
 hazard_type: [flood/fire/downed_tree/damaged_building/blocked_road/none]
 severity: [low/medium/high]
-description: [one short sentence]`,
+description: [one short sentence, combining what you see AND what the reporter said]
+
+Reporter's notes: "${notes || "No additional notes provided."}"`,
             },
             {
               type: "image_url",

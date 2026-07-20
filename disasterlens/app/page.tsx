@@ -15,6 +15,7 @@ export default function Home() {
   const [result, setResult] = useState<string | null>(null);
   const [hazards, setHazards] = useState<Hazard[]>([]);
   const [nearestShelterInfo, setNearestShelterInfo] = useState<string | null>(null);
+  const [notes, setNotes] = useState("");
 
   function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -51,7 +52,7 @@ export default function Home() {
     const response = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ imageBase64: image }),
+      body: JSON.stringify({ imageBase64: image, notes }),
     });
 
     const data = await response.json();
@@ -115,6 +116,16 @@ export default function Home() {
               src={image}
               alt="Uploaded preview"
               className="mt-6 rounded-lg max-h-64 mx-auto"
+            />
+          )}
+
+          {image && (
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add details: exact location, what's happening, who needs help..."
+              className="mt-4 w-full bg-slate-800 border border-slate-600 rounded-lg p-3 text-sm text-white placeholder-slate-500 resize-none"
+              rows={3}
             />
           )}
 
