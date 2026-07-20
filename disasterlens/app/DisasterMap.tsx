@@ -21,6 +21,8 @@ export type Hazard = {
   type: string;
   severity: string;
   description: string;
+  verified: boolean;
+  reportCount: number;
 };
 
 export type Shelter = {
@@ -136,6 +138,26 @@ export function findNearestShelter(lat: number, lng: number) {
   return { shelter: nearest, distance: minDist };
 }
 
+// Checks nearby existing hazards to see if this is a duplicate/confirming report
+export function checkVerification(
+  newLat: number,
+  newLng: number,
+  newType: string,
+  existingHazards: Hazard[]
+) {
+  const NEARBY_MILES = 1.5; // reports within this distance count as "same area"
+
+  const matchingReports = existingHazards.filter((h) => {
+    const dist = getDistance(newLat, newLng, h.lat, h.lng);
+    return h.type === newType && dist <= NEARBY_MILES;
+  });
+
+  const reportCount = matchingReports.length + 1; // +1 for this new report
+  const verified = reportCount >= 2;
+
+  return { verified, reportCount };
+}
+
 // Colors for each hazard type
 function getColorIcon(type: string) {
   const colors: Record<string, string> = {
@@ -208,6 +230,17 @@ export default function DisasterMap({
             Severity: {hazard.severity}
             <br />
             {hazard.description}
+            <br />
+            <br />
+            {hazard.verified ? (
+              <span style={{ color: "green", fontWeight: "bold" }}>
+                ✅ Verified ({hazard.reportCount} reports)
+              </span>
+            ) : (
+              <span style={{ color: "orange", fontWeight: "bold" }}>
+                ⚠️ Unverified (1 report)
+              </span>
+            )}
           </Popup>
         </Marker>
       ))}

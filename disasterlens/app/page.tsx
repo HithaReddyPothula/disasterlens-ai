@@ -6,6 +6,7 @@ import type { Hazard, Volunteer } from "./DisasterMap";
 import {
   findNearestShelter,
   findMatchingVolunteers,
+  checkVerification,
   TAMPA_NEIGHBORHOODS,
 } from "./DisasterMap";
 
@@ -37,6 +38,10 @@ export default function Home() {
   const [nearestShelterInfo, setNearestShelterInfo] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [showIntro, setShowIntro] = useState(true);
+  const [verificationInfo, setVerificationInfo] = useState<{
+    verified: boolean;
+    reportCount: number;
+  } | null>(null);
 
   // Volunteer state
   const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
@@ -100,6 +105,7 @@ export default function Home() {
     setLoading(true);
     setResult(null);
     setMatchedVolunteers([]);
+    setVerificationInfo(null);
 
     const response = await fetch("/api/analyze", {
       method: "POST",
@@ -114,19 +120,33 @@ export default function Home() {
     const parsed = parseHazard(text);
 
     // Random nearby location around Tampa, for demo purposes
+    const newLat = 27.9506 + (Math.random() - 0.5) * 0.08;
+    const newLng = -82.4572 + (Math.random() - 0.5) * 0.08;
+
+    // Check verification against existing hazards BEFORE adding this new one
+    const { verified, reportCount } = checkVerification(
+      newLat,
+      newLng,
+      parsed.type,
+      hazards
+    );
+    setVerificationInfo({ verified, reportCount });
+
     const newHazard: Hazard = {
       id: Date.now(),
-      lat: 27.9506 + (Math.random() - 0.5) * 0.08,
-      lng: -82.4572 + (Math.random() - 0.5) * 0.08,
+      lat: newLat,
+      lng: newLng,
       type: parsed.type,
       severity: parsed.severity,
       description: parsed.description,
+      verified,
+      reportCount,
     };
 
     setHazards((prev) => [...prev, newHazard]);
 
     // Find nearest shelter to this new hazard
-    const { shelter, distance } = findNearestShelter(newHazard.lat, newHazard.lng);
+    const { shelter, distance } = findNearestShelter(newLat, newLng);
     setNearestShelterInfo(
       `Nearest shelter: ${shelter.name} (${distance.toFixed(
         1
@@ -232,6 +252,20 @@ export default function Home() {
               <pre className="mt-6 text-left text-sm bg-slate-800 p-4 rounded-lg whitespace-pre-wrap">
                 {result}
               </pre>
+            )}
+
+            {verificationInfo && (
+              <div
+                className={`mt-4 text-left text-sm p-4 rounded-lg border ${
+                  verificationInfo.verified
+                    ? "bg-green-900/40 border-green-500"
+                    : "bg-yellow-900/40 border-yellow-500"
+                }`}
+              >
+                {verificationInfo.verified
+                  ? `✅ Verified — confirmed by ${verificationInfo.reportCount} independent reports in this area`
+                  : "⚠️ Unverified — only 1 report so far. Will auto-upgrade if others report nearby."}
+              </div>
             )}
 
             {nearestShelterInfo && (
