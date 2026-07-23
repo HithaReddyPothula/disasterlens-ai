@@ -266,29 +266,79 @@ export default function Home() {
 
   if (showIntro) {
     return (
-      <main className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-8 text-center">
-        <h1 className="text-5xl font-bold text-orange-400 mb-4">
-          DisasterLens AI
-        </h1>
-        <p className="text-slate-300 max-w-xl mb-2 text-lg">
-          When disaster strikes, every second matters.
-        </p>
-        <p className="text-slate-400 max-w-xl mb-10">
-          DisasterLens turns community-submitted photos into real-time
-          emergency intelligence — helping first responders identify hazards,
-          locate shelters, and save lives faster.
-        </p>
+      <main className="min-h-screen bg-slate-950 text-white flex flex-col relative overflow-hidden">
+        {/* Background glow effect */}
+        <div className="absolute inset-0 bg-gradient-to-br from-orange-900/20 via-slate-950 to-blue-900/20"></div>
+        <div className="absolute top-1/3 right-0 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
 
-        <button
-          onClick={() => setShowIntro(false)}
-          className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-8 py-3 rounded-lg text-lg transition"
-        >
-          Get Started →
-        </button>
+        {/* Top nav */}
+        <nav className="relative z-10 flex items-center justify-between px-8 py-5">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🛰️</span>
+            <span className="font-bold text-lg">DisasterLens</span>
+            <span className="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full ml-1">
+              v1.0
+            </span>
+          </div>
+          <button
+            onClick={() => setShowIntro(false)}
+            className="bg-orange-500 hover:bg-orange-600 text-white font-medium px-5 py-2 rounded-lg text-sm transition"
+          >
+            Dashboard →
+          </button>
+        </nav>
 
-        <p className="mt-10 text-xs text-slate-500 max-w-md">
-          "Building with AI: Empowering Communities, Transforming Futures"
-        </p>
+        {/* Hero content */}
+        <div className="relative z-10 flex-1 flex flex-col justify-center px-8 max-w-3xl">
+          <div className="inline-block mb-4">
+            <span className="text-xs font-medium bg-orange-500/10 text-orange-300 border border-orange-500/30 px-3 py-1 rounded-full">
+              ● AI DISASTER INTELLIGENCE · TAMPA BAY
+            </span>
+          </div>
+
+          <h1 className="text-6xl font-bold mb-6 leading-tight">
+            Disaster
+            <span className="text-orange-400">Lens</span>
+          </h1>
+
+          <p className="text-slate-300 text-lg mb-2 max-w-xl">
+            When disaster strikes, every second matters.
+          </p>
+          <p className="text-slate-400 mb-10 max-w-xl">
+            DisasterLens turns community-submitted photos and voice reports
+            into real-time emergency intelligence — helping responders
+            identify hazards, locate shelters, and save lives{" "}
+            <strong className="text-white">faster.</strong>
+          </p>
+
+          <div className="flex gap-4 mb-10">
+            <button
+              onClick={() => setShowIntro(false)}
+              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-8 py-3 rounded-lg text-lg transition"
+            >
+              Launch Dashboard →
+            </button>
+          </div>
+
+          {/* Feature badges */}
+          <div className="flex flex-wrap gap-2">
+            <FeatureBadge icon="📸" label="Hazard Analyzer" color="orange" />
+            <FeatureBadge icon="✅" label="Verification Agent" color="green" />
+            <FeatureBadge icon="🤝" label="Resource Coordinator" color="blue" />
+            <FeatureBadge icon="🧭" label="Route Advisor" color="purple" />
+          </div>
+        </div>
+
+        {/* Bottom ticker */}
+        <div className="relative z-10 bg-slate-900/80 border-t border-slate-800 px-6 py-2 text-xs text-slate-400 flex items-center gap-3 overflow-hidden">
+          <span className="bg-red-600 text-white px-2 py-0.5 rounded font-semibold flex-shrink-0">
+            SIM
+          </span>
+          <span className="whitespace-nowrap">
+            ⚠ Simulation Active — Hurricane Demo Scenario · Tampa Bay Region ·
+          </span>
+        </div>
       </main>
     );
   }
@@ -336,7 +386,12 @@ export default function Home() {
         </nav>
 
         <div className="mt-auto pt-4 border-t border-slate-800">
-          <p className="text-xs text-slate-500 px-2">BAM Hackathon 2026</p>
+          <button
+            onClick={() => setShowIntro(true)}
+            className="text-xs text-slate-500 hover:text-slate-300 px-2 transition"
+          >
+            ← Back to Landing
+          </button>
         </div>
       </aside>
 
@@ -907,5 +962,30 @@ function LegendItem({ color, label }: { color: string; label: string }) {
       ></span>
       <span className="text-slate-300">{label}</span>
     </div>
+  );
+}
+
+function FeatureBadge({
+  icon,
+  label,
+  color,
+}: {
+  icon: string;
+  label: string;
+  color: "orange" | "green" | "blue" | "purple";
+}) {
+  const colorMap = {
+    orange: "bg-orange-500/10 text-orange-300 border-orange-500/30",
+    green: "bg-green-500/10 text-green-300 border-green-500/30",
+    blue: "bg-blue-500/10 text-blue-300 border-blue-500/30",
+    purple: "bg-purple-500/10 text-purple-300 border-purple-500/30",
+  };
+
+  return (
+    <span
+      className={`text-xs font-medium px-3 py-1.5 rounded-full border ${colorMap[color]}`}
+    >
+      {icon} {label}
+    </span>
   );
 }
