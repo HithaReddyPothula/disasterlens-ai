@@ -337,7 +337,6 @@ export default function HomeClient() {
           </span>
           <span className="whitespace-nowrap">
             ⚠ Simulation Active — Hurricane Demo Scenario · Tampa Bay Region ·
-            Built for BAM Summer Mentorship Program Hackathon 2026
           </span>
         </div>
       </main>
