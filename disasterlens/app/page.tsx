@@ -1,7 +1,8 @@
 "use client";
 
+export const dynamic = "force-dynamic";
 import { useState } from "react";
-import dynamic from "next/dynamic";
+import nextDynamic from "next/dynamic";
 import {
   LineChart,
   Line,
@@ -22,7 +23,7 @@ import {
 } from "./DisasterMap";
 
 // Load the map only in the browser (not on the server)
-const DisasterMap = dynamic(() => import("./DisasterMap"), { ssr: false });
+const DisasterMap = nextDynamic(() => import("./DisasterMap"), { ssr: false });
 
 const SKILL_OPTIONS = [
   { value: "medical", label: "Medical" },
