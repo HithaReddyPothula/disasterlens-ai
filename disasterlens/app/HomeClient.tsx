@@ -66,7 +66,9 @@ export default function HomeClient() {
   const [estimatedCost, setEstimatedCost] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
   const [showIntro, setShowIntro] = useState(true);
-  const [currentView, setCurrentView] = useState<"report" | "dashboard">("dashboard");
+  const [currentView, setCurrentView] = useState
+    "report" | "dashboard" | "volunteers" | "routes"
+  >("dashboard");
   const [verificationInfo, setVerificationInfo] = useState<{
     verified: boolean;
     reportCount: number;
@@ -337,6 +339,7 @@ export default function HomeClient() {
           </span>
           <span className="whitespace-nowrap">
             ⚠ Simulation Active — Hurricane Demo Scenario · Tampa Bay Region ·
+            Built for BAM Summer Mentorship Program Hackathon 2026
           </span>
         </div>
       </main>
@@ -386,6 +389,18 @@ export default function HomeClient() {
             icon="📸"
             label="Report & Respond"
           />
+          <SidebarButton
+            active={currentView === "volunteers"}
+            onClick={() => setCurrentView("volunteers")}
+            icon="🤝"
+            label="Volunteers"
+          />
+          <SidebarButton
+            active={currentView === "routes"}
+            onClick={() => setCurrentView("routes")}
+            icon="🧭"
+            label="Routes"
+          />
         </nav>
 
         <div className="mt-auto pt-4 border-t border-slate-800">
@@ -408,7 +423,7 @@ export default function HomeClient() {
 
         <div className="p-8 overflow-y-auto">
           <div className="max-w-6xl mx-auto">
-            {currentView === "dashboard" ? (
+            {currentView === "dashboard" && (
               <DashboardView
                 hazards={hazards}
                 volunteers={volunteers}
@@ -419,7 +434,9 @@ export default function HomeClient() {
                 totalCapacity={totalCapacity}
                 chartData={chartData}
               />
-            ) : (
+            )}
+
+            {currentView === "report" && (
               <>
                 <h1 className="text-3xl font-bold text-orange-400 mb-2 text-center">
                   Report & Respond
@@ -431,9 +448,8 @@ export default function HomeClient() {
                 </p>
 
                 <div className="flex flex-col lg:flex-row gap-8">
-                  {/* Left column: Upload panel + Directions + Volunteer signup */}
-                  <div className="w-full lg:w-1/3 flex flex-col gap-6">
-                    {/* Upload panel */}
+                  {/* Upload panel */}
+                  <div className="w-full lg:w-1/3">
                     <div className="border-2 border-dashed border-slate-500 rounded-xl p-10 text-center">
                       <p className="text-slate-400 mb-4">
                         Choose a photo to analyze
@@ -567,8 +583,150 @@ export default function HomeClient() {
                         </div>
                       )}
                     </div>
+                  </div>
 
-                    {/* Get Directions panel */}
+                  {/* Map panel */}
+                  <div className="w-full lg:w-2/3">
+                    <DisasterMap
+                      hazards={hazards}
+                      volunteers={volunteers}
+                      route={route}
+                    />
+
+                    {/* Legend */}
+                    <div className="mt-4 flex flex-wrap gap-4 text-sm bg-slate-800 p-4 rounded-lg">
+                      <LegendItem color="#3388ff" label="Flood" />
+                      <LegendItem color="#ff3333" label="Fire" />
+                      <LegendItem color="#33cc33" label="Downed Tree" />
+                      <LegendItem color="#ff9900" label="Damaged Building" />
+                      <LegendItem color="#ffcc00" label="Blocked Road" />
+                      <LegendItem color="#9b59b6" label="Shelter" />
+                      <LegendItem color="#333333" label="Volunteer" />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {currentView === "volunteers" && (
+              <>
+                <h1 className="text-3xl font-bold text-orange-400 mb-2 text-center">
+                  Volunteers
+                </h1>
+                <p className="text-slate-300 mb-8 text-center max-w-md mx-auto">
+                  Sign up to help, and see who's already registered to
+                  respond in each neighborhood.
+                </p>
+
+                <div className="flex flex-col lg:flex-row gap-8">
+                  {/* Sign-up panel */}
+                  <div className="w-full lg:w-1/3">
+                    <div className="bg-slate-800 rounded-xl p-6">
+                      <p className="font-semibold text-orange-300 mb-3">
+                        Want to help? Sign up as a volunteer:
+                      </p>
+
+                      <input
+                        type="text"
+                        value={volunteerName}
+                        onChange={(e) => setVolunteerName(e.target.value)}
+                        placeholder="Your name"
+                        className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm text-white placeholder-slate-500 mb-3"
+                      />
+
+                      <input
+                        type="text"
+                        value={volunteerContact}
+                        onChange={(e) => setVolunteerContact(e.target.value)}
+                        placeholder="Phone or email"
+                        className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm text-white placeholder-slate-500 mb-3"
+                      />
+
+                      <select
+                        value={volunteerNeighborhood}
+                        onChange={(e) =>
+                          setVolunteerNeighborhood(e.target.value)
+                        }
+                        className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm text-white mb-3"
+                      >
+                        {NEIGHBORHOOD_OPTIONS.map((n) => (
+                          <option key={n} value={n}>
+                            {n}
+                          </option>
+                        ))}
+                      </select>
+
+                      <select
+                        value={volunteerSkill}
+                        onChange={(e) => setVolunteerSkill(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm text-white mb-3"
+                      >
+                        {SKILL_OPTIONS.map((s) => (
+                          <option key={s.value} value={s.value}>
+                            {s.label}
+                          </option>
+                        ))}
+                      </select>
+
+                      <button
+                        onClick={handleVolunteerSignup}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition"
+                      >
+                        Sign Up
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Registered volunteers list */}
+                  <div className="w-full lg:w-2/3">
+                    <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                      <p className="font-semibold text-slate-200 mb-4">
+                        Registered Volunteers ({volunteers.length})
+                      </p>
+
+                      {volunteers.length === 0 ? (
+                        <p className="text-slate-500 text-sm">
+                          No volunteers signed up yet.
+                        </p>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {volunteers.map((v) => (
+                            <div
+                              key={v.id}
+                              className="bg-slate-800 border border-slate-700 rounded-lg p-4"
+                            >
+                              <p className="font-medium text-white">
+                                {v.name}
+                              </p>
+                              <p className="text-xs text-slate-400 mt-1">
+                                {v.skill.replace("_", " ")} · {v.neighborhood}
+                              </p>
+                              <p className="text-xs text-green-400 mt-1">
+                                📞 {v.contact}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {currentView === "routes" && (
+              <>
+                <h1 className="text-3xl font-bold text-orange-400 mb-2 text-center">
+                  Routes
+                </h1>
+                <p className="text-slate-300 mb-8 text-center max-w-md mx-auto">
+                  Get directions to the nearest shelter, with warnings if a
+                  reported hazard is blocking the way.
+                </p>
+
+                <div className="flex flex-col lg:flex-row gap-8">
+                  {/* Directions panel */}
+                  <div className="w-full lg:w-1/3">
                     <div className="bg-slate-800 rounded-xl p-6">
                       <p className="font-semibold text-orange-300 mb-3">
                         🧭 Get Directions to a Shelter
@@ -629,72 +787,9 @@ export default function HomeClient() {
                         </div>
                       )}
                     </div>
-
-                    {/* Volunteer sign-up panel */}
-                    <div className="bg-slate-800 rounded-xl p-6">
-                      <p className="font-semibold text-orange-300 mb-3">
-                        Want to help? Sign up as a volunteer:
-                      </p>
-
-                      <input
-                        type="text"
-                        value={volunteerName}
-                        onChange={(e) => setVolunteerName(e.target.value)}
-                        placeholder="Your name"
-                        className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm text-white placeholder-slate-500 mb-3"
-                      />
-
-                      <input
-                        type="text"
-                        value={volunteerContact}
-                        onChange={(e) => setVolunteerContact(e.target.value)}
-                        placeholder="Phone or email"
-                        className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm text-white placeholder-slate-500 mb-3"
-                      />
-
-                      <select
-                        value={volunteerNeighborhood}
-                        onChange={(e) =>
-                          setVolunteerNeighborhood(e.target.value)
-                        }
-                        className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm text-white mb-3"
-                      >
-                        {NEIGHBORHOOD_OPTIONS.map((n) => (
-                          <option key={n} value={n}>
-                            {n}
-                          </option>
-                        ))}
-                      </select>
-
-                      <select
-                        value={volunteerSkill}
-                        onChange={(e) => setVolunteerSkill(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm text-white mb-3"
-                      >
-                        {SKILL_OPTIONS.map((s) => (
-                          <option key={s.value} value={s.value}>
-                            {s.label}
-                          </option>
-                        ))}
-                      </select>
-
-                      <button
-                        onClick={handleVolunteerSignup}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition"
-                      >
-                        Sign Up
-                      </button>
-
-                      {volunteers.length > 0 && (
-                        <p className="mt-3 text-xs text-slate-400">
-                          {volunteers.length} volunteer
-                          {volunteers.length > 1 ? "s" : ""} registered
-                        </p>
-                      )}
-                    </div>
                   </div>
 
-                  {/* Map panel */}
+                  {/* Map showing the route */}
                   <div className="w-full lg:w-2/3">
                     <DisasterMap
                       hazards={hazards}
@@ -702,7 +797,6 @@ export default function HomeClient() {
                       route={route}
                     />
 
-                    {/* Legend */}
                     <div className="mt-4 flex flex-wrap gap-4 text-sm bg-slate-800 p-4 rounded-lg">
                       <LegendItem color="#3388ff" label="Flood" />
                       <LegendItem color="#ff3333" label="Fire" />
@@ -710,7 +804,6 @@ export default function HomeClient() {
                       <LegendItem color="#ff9900" label="Damaged Building" />
                       <LegendItem color="#ffcc00" label="Blocked Road" />
                       <LegendItem color="#9b59b6" label="Shelter" />
-                      <LegendItem color="#333333" label="Volunteer" />
                     </div>
                   </div>
                 </div>
