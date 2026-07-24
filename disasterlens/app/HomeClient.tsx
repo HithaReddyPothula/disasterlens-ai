@@ -337,6 +337,7 @@ export default function HomeClient() {
           </span>
           <span className="whitespace-nowrap">
             ⚠ Simulation Active — Hurricane Demo Scenario · Tampa Bay Region ·
+            Built for BAM Summer Mentorship Program Hackathon 2026
           </span>
         </div>
       </main>
@@ -360,7 +361,10 @@ export default function HomeClient() {
     <main className="min-h-screen bg-slate-950 text-white flex">
       {/* Sidebar */}
       <aside className="w-56 bg-slate-900 border-r border-slate-800 flex flex-col p-4 flex-shrink-0">
-        <div className="flex items-center gap-2 mb-8 px-2">
+        <button
+          onClick={() => setShowIntro(true)}
+          className="flex items-center gap-2 mb-8 px-2 text-left hover:opacity-80 transition"
+        >
           <span className="text-2xl">🛰️</span>
           <div>
             <p className="font-bold text-orange-400 leading-tight">
@@ -368,7 +372,7 @@ export default function HomeClient() {
             </p>
             <p className="text-xs text-slate-500">Tampa Bay · v1.0</p>
           </div>
-        </div>
+        </button>
 
         <nav className="flex flex-col gap-1">
           <SidebarButton
